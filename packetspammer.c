@@ -1,5 +1,7 @@
 // (c)2007 Andy Green <andy@warmcat.com>
 
+// commented by Jose Saldana. 2016
+
 /*
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -40,15 +42,36 @@ static const u8 u8aRatesToUse[] = {
 
 /* this is the template radiotap header we send packets out with */
 
-static const u8 u8aRadiotapHeader[] = {
+static const u8 u8aRadiotapHeader[] = {	// the uxx types are "unsigned integers", of the specified bit widths
+										// so u8 is a 8-bit unsigned integer
 
-	0x00, 0x00, // <-- radiotap version
-	0x19, 0x00, // <- radiotap header length
-	0x6f, 0x08, 0x00, 0x00, // <-- bitmap
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // <-- timestamp
+	0x00, // <-- radiotap version
+	0x00, // <-- padding
+	0x19, 0x00, // <- radiotap header length; 19 in hexadecimal means 25 bytes in decimal.
+				// specified in little endian byte-order (i.e. inverse order)
+	0x6f, 0x08, 0x00, 0x00, // <-- it_present bitmap Hex0000086F->bin 00000000 00000000 00001000 01101111
+							//                                        ^                                 ^
+	                        //                                        31                                0
+							// the bit 31 non set (0) indicates that this is the only "it_present" word
+							// these are the fields (see http://www.radiotap.org/defined-fields)
+							// 1 TSFT
+							// 1 Flags
+							// 1 rate
+							// 1 channel
+							// 0 FHSS
+							// 1 antenna signal
+							// 1 antenna noise
+							// 0 lock quality
+							// 0 TX attenuation
+							// 0 dB TX attenuation
+							// 0 dBm TX power
+							// 1 antenna
+							// etc
+	
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // <-- TSFT timestamp
 	0x00, // <-- flags (Offset +0x10)
 	0x6c, // <-- rate (0ffset +0x11)
-	0x71, 0x09, 0xc0, 0x00, // <-- channel
+	0x71, 0x09, 0xc0, 0x00, // <-- channel: mask 00c0 frequency hex0971=2417MHz
 	0xde, // <-- antsignal
 	0x00, // <-- antnoise
 	0x01, // <-- antenna
@@ -57,8 +80,9 @@ static const u8 u8aRadiotapHeader[] = {
 #define	OFFSET_FLAGS 0x10
 #define	OFFSET_RATE 0x11
 
-/* Penumbra IEEE80211 header */
 
+/* Penumbra IEEE80211 header */
+// this seems to be the IEEE802.11 header
 static const u8 u8aIeeeHeader[] = {
 	0x08, 0x01, 0x00, 0x00,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -67,7 +91,8 @@ static const u8 u8aIeeeHeader[] = {
 	0x10, 0x86,
 };
 
-// this is where we store a summary of the
+
+// this is the struct where we store a summary of the
 // information from the radiotap header
 
 typedef struct  {
@@ -82,6 +107,8 @@ typedef struct  {
 
 int flagHelp = 0, flagMarkWithFCS = 0;
 
+
+// dump the packet to the screen
 void
 Dump(u8 * pu8, int nLength)
 {
@@ -134,7 +161,7 @@ Dump(u8 * pu8, int nLength)
 }
 
 
-
+// print the usage info
 void
 usage(void)
 {
@@ -146,8 +173,10 @@ usage(void)
 	    "-f/--fcs           Mark as having FCS (CRC) already\n"
 	    "                   (pkt ends with 4 x sacrificial - chars)\n"
 	    "Example:\n"
-	    "  echo -n mon0 > /sys/class/ieee80211/phy0/add_iface\n"
-	    "  iwconfig mon0 mode monitor\n"
+//	    "  echo -n mon0 > /sys/class/ieee80211/phy0/add_iface\n"	// this seems to be legacy
+//	    "  iwconfig mon0 mode monitor\n" 							// this is already included in the next command
+		"  iw phy phy0 interface add mon0 type monitor\n"
+		"  iwconfig mon0 channel 6\n"
 	    "  ifconfig mon0 up\n"
 	    "  packetspammer mon0        Spam down mon0 with\n"
 	    "                            radiotap header first\n"
@@ -159,7 +188,7 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
-	u8 u8aSendBuffer[500];
+	u8 u8aSendBuffer[500];	// an array of unsigned integers of 8 bits
 	char szErrbuf[PCAP_ERRBUF_SIZE];
 	int nCaptureHeaderLength = 0, n80211HeaderLength = 0, nLinkEncap = 0;
 	int nOrdinal = 0, r, nDelay = 100000;
@@ -217,7 +246,7 @@ main(int argc, char *argv[])
 		usage();
 
 
-		// open the interface in pcap
+	// open the interface in pcap
 
 	szErrbuf[0] = '\0';
 	ppcap = pcap_open_live(argv[optind], 800, 1, 20, szErrbuf);
@@ -232,6 +261,7 @@ main(int argc, char *argv[])
 
 	switch (nLinkEncap) {
 
+		// it seems that Prism header is a legacy feature
 		case DLT_PRISM_HEADER:
 			printf("DLT_PRISM_HEADER Encap\n");
 			nCaptureHeaderLength = 0x40;
@@ -373,7 +403,13 @@ main(int argc, char *argv[])
 		    "broadcast packet"
 		    "#%05d -- :-D --%s ----",
 		    nRate/2, nOrdinal++, szHostname);
+		
+		// http://www.tcpdump.org/manpages/pcap_inject.3pcap.html
+		// pcap_inject() sends a raw packet through the network 
+		//  interface; buf points to the data of the packet, including 
+		//  the link-layer header, and size is the number of bytes in the packet.
 		r = pcap_inject(ppcap, u8aSendBuffer, pu8 - u8aSendBuffer);
+		
 		if (r != (pu8-u8aSendBuffer)) {
 			perror("Trouble injecting packet");
 			return (1);
