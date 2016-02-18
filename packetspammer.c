@@ -27,15 +27,15 @@
 
 static const u8 u8aRatesToUse[] = {
 
-	54*2,
+	54*2,	//108. It means 108*500kHz=54Mbps
 	48*2,
 	36*2,
 	24*2,
 	18*2,
-	12*2,
+	12*2, 
 	9*2,
 	11*2,
-	11, // 5.5
+	11, // 5.5 Mbps
 	2*2,
 	1*2
 };
@@ -70,7 +70,7 @@ static const u8 u8aRadiotapHeader[] = {	// the uxx types are "unsigned integers"
 	
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // <-- TSFT timestamp
 	0x00, // <-- flags (Offset +0x10)
-	0x6c, // <-- rate (0ffset +0x11)
+	0x6c, // <-- rate (0ffset +0x11) hex6c = 108dec. So 108*500KHz = 54Mbps
 	0x71, 0x09, 0xc0, 0x00, // <-- channel: mask 00c0 frequency hex0971=2417MHz
 	0xde, // <-- antsignal
 	0x00, // <-- antnoise
