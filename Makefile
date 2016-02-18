@@ -1,5 +1,5 @@
 packetspammer: packetspammer.c
-	gcc  -Wall -Werror radiotap.c packetspammer.c -o packetspammer -lpcap
+	gcc  -Wall -Werror -I/usr/include/pcap radiotap.c packetspammer.c -o packetspammer -lpcap
 
 clean:
 	rm -f packetspammer *~

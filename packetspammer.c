@@ -22,6 +22,7 @@
 
 #include "packetspammer.h"
 #include "radiotap.h"
+#include "ieee80211.h"
 
 /* wifi bitrate to use in 500kHz units */
 
