@@ -23,15 +23,15 @@ RX: Rate: 54.0Mbps, Freq: 2.417GHz, Ant: 0, Flags: 10
 
 Typical usage:
 
-  echo -n mon0 > /sys/class/ieee80211/phy0/add_iface
-  iwconfig mon0 mode monitor
-  ifconfig mon0 up
-  packetspammer mon0
+    echo -n mon0 > /sys/class/ieee80211/phy0/add_iface
+    iwconfig mon0 mode monitor
+    ifconfig mon0 up
+    packetspammer mon0
 
 You may need to bring up your normal interface first and set its channel, eg
 
-ifconfig wlan0 up
-iwconfig wlan0 channel 2
+    ifconfig wlan0 up
+    iwconfig wlan0 channel 2
 
 If you normal interface is associated to an AP on a particular channel, that's
 fine, the packet injection won't disturb the association.
